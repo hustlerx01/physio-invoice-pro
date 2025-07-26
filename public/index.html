@@ -421,11 +421,10 @@
                 const upiUrl = `upi://pay?pa=${upiId || 'default'}&pn=${encodeURIComponent(clinicName)}&am=${total.toFixed(2)}&cu=INR`;
                 new QRious({ element: qrCanvas, value: upiUrl, size: 112, padding: 4, level: 'H' });
                 
-                // Save details to local storage on every update
                 saveClinicDetails();
             }, 250);
 
-            // --- AI CALLER FUNCTION ---
+            // --- AI CALLER FUNCTION (IMPROVED ERROR HANDLING) ---
             async function callGemini(prompt, button, isJson = false) {
                 if(button) {
                     button.innerHTML = '<div class="spinner"></div>';
@@ -440,7 +439,16 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`API error: ${response.statusText}`);
+                        let detailedMessage = `Server responded with status ${response.status}.`;
+                        try {
+                            const errorJson = await response.json();
+                            if (errorJson.message) {
+                                detailedMessage = errorJson.message;
+                            }
+                        } catch (e) {
+                            // Ignore if the body isn't JSON.
+                        }
+                        throw new Error(detailedMessage);
                     }
                     
                     const result = await response.json();
@@ -448,7 +456,7 @@
 
                 } catch (error) {
                     console.error("API call failed:", error);
-                    alert("AI feature failed. Please check the console for details.");
+                    alert(`AI feature failed: ${error.message}`);
                     return null;
                 } finally {
                     if(button) {
@@ -541,7 +549,7 @@
                     reader.onload = function(event) {
                         document.getElementById('preview-logo-img').src = event.target.result;
                         document.getElementById('preview-logo-img').classList.remove('hidden');
-                        updateInvoice(); // Save logo to local storage
+                        updateInvoice();
                     }
                     reader.readAsDataURL(file);
                 }
@@ -630,7 +638,7 @@
 
             // --- INITIALIZATION ---
             function initializeApp() {
-                loadClinicDetails(); // Load saved details first
+                loadClinicDetails();
 
                 const d = new Date();
                 const timestamp = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}-${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}${d.getSeconds().toString().padStart(2,'0')}`;
@@ -643,7 +651,7 @@
                     document.getElementById('generate-wellness-tip-btn').click();
                 }
                 
-                updateInvoice(); // Update preview with loaded/default data
+                updateInvoice();
             }
 
             initializeApp();
