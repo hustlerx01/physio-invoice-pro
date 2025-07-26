@@ -136,9 +136,9 @@
                                 <label for="logoUpload" class="block text-sm font-medium text-gray-700 mb-1">Clinic Logo</label>
                                 <input type="file" id="logoUpload" accept="image/*" class="form-input w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                             </div>
-                            <input type="text" id="clinicName" data-ai-format="name" class="form-input w-full rounded-md border-gray-300" placeholder="Clinic Name">
-                            <input type="text" id="therapistName" data-ai-format="name" class="form-input w-full rounded-md border-gray-300" placeholder="Therapist Name & Qualifications">
-                            <textarea id="clinicAddress" data-ai-format="address" rows="2" class="form-input w-full rounded-md border-gray-300" placeholder="Clinic Address"></textarea>
+                            <input type="text" id="clinicName" class="form-input w-full rounded-md border-gray-300" placeholder="Clinic Name">
+                            <input type="text" id="therapistName" class="form-input w-full rounded-md border-gray-300" placeholder="Therapist Name & Qualifications">
+                            <textarea id="clinicAddress" rows="2" class="form-input w-full rounded-md border-gray-300" placeholder="Clinic Address"></textarea>
                             <div class="grid grid-cols-2 gap-4">
                                 <input type="text" id="clinicContact" class="form-input w-full rounded-md border-gray-300" placeholder="Contact No.">
                                 <input type="email" id="clinicEmail" class="form-input w-full rounded-md border-gray-300" placeholder="Email Address">
@@ -150,8 +150,8 @@
                     <fieldset class="border border-gray-200 rounded-lg p-4">
                         <legend class="text-lg font-semibold px-2">Patient Details</legend>
                         <div class="space-y-4">
-                            <input type="text" id="toName" data-ai-format="name" class="form-input w-full rounded-md border-gray-300" placeholder="Patient Name">
-                            <textarea id="toAddress" data-ai-format="address" rows="2" class="form-input w-full rounded-md border-gray-300" placeholder="Patient Address"></textarea>
+                            <input type="text" id="toName" class="form-input w-full rounded-md border-gray-300" placeholder="Patient Name">
+                            <textarea id="toAddress" rows="2" class="form-input w-full rounded-md border-gray-300" placeholder="Patient Address"></textarea>
                         </div>
                     </fieldset>
                     
@@ -190,7 +190,7 @@
                             <span>Marketing & Notes</span>
                             <button id="generate-marketing-btn" class="gemini-btn" title="Suggest marketing message">✨ Suggest</button>
                         </legend>
-                        <textarea id="marketingNotes" data-ai-format="sentence" rows="3" class="form-input w-full rounded-md border-gray-300" placeholder="e.g., Book your next session within 7 days for 10% off!"></textarea>
+                        <textarea id="marketingNotes" rows="3" class="form-input w-full rounded-md border-gray-300" placeholder="e.g., Book your next session within 7 days for 10% off!"></textarea>
                     </fieldset>
 
                      <fieldset class="border border-gray-200 rounded-lg p-4">
@@ -327,15 +327,68 @@
         document.addEventListener('DOMContentLoaded', function () {
             const DOWNLOAD_LIMIT = 2;
 
+            // --- LOCAL "AI" DATABASE ---
+            const localAiDatabase = {
+                services: {
+                    'pain': ['Pain Management Session', 'Chronic Pain Consultation', 'Acute Injury Pain Relief'],
+                    'back': ['Lower Back Pain Treatment', 'Spinal Decompression Therapy', 'Postural Correction Session'],
+                    'neck': ['Neck Pain & Stiffness Therapy', 'Cervical Traction Session', 'Whiplash Injury Rehab'],
+                    'shoulder': ['Frozen Shoulder Treatment', 'Rotator Cuff Injury Rehab', 'Shoulder Impingement Therapy'],
+                    'knee': ['Knee Pain Assessment & Treatment', 'Post-Surgical Knee Rehabilitation', 'ACL Injury Prevention Program'],
+                    'rehab': ['Post-Operative Rehabilitation', 'Sports Injury Rehabilitation', 'Neurological Rehabilitation'],
+                    'sports': ['Sports Injury Assessment', 'Performance Enhancement Training', 'Return-to-Sport Program'],
+                    'manual': ['Manual Therapy Session', 'Joint Mobilization', 'Soft Tissue Release'],
+                    'therapy': ['Manual Therapy Session', 'Electrotherapy Modality', 'Exercise Therapy Program'],
+                },
+                marketing: {
+                    'default': ['Consistent therapy is key to your recovery. Book your next session soon!', 'Your health is an investment. We look forward to seeing you again.', 'Thank you for trusting us with your recovery journey.'],
+                    'pain': ['Don\'t let pain hold you back. Schedule your follow-up for continued relief.', 'Stay on top of your recovery. Your next session is just a call away.'],
+                    'rehab': ['Your dedication is paying off! Let\'s keep the momentum going in your next session.', 'Rehabilitation is a journey. Book your next appointment to stay on track.'],
+                    'sports': ['Get back in the game stronger than ever. Book your follow-up session today!', 'Optimize your performance and prevent future injuries with regular sessions.']
+                },
+                wellness: {
+                    'default': ['Stay hydrated throughout the day to aid muscle recovery.', 'Remember to take short breaks and stretch if you sit for long periods.', 'Listen to your body. Rest is just as important as exercise.'],
+                    'back': ['Engage your core when lifting to protect your lower back.', 'Use a lumbar roll for support when sitting for extended periods.'],
+                    'neck': ['Ensure your computer screen is at eye level to avoid neck strain.', 'Gently perform neck stretches daily to maintain flexibility.'],
+                    'shoulder': ['Avoid sleeping on your painful shoulder. Use pillows for support.', 'Strengthen your rotator cuff with light resistance band exercises.'],
+                    'knee': ['Strengthen your quadriceps and hamstrings to support your knee joint.', 'Low-impact exercises like swimming are great for knee health.']
+                }
+            };
+
+            // --- LOCAL "AI" ENGINE ---
+            function getLocalAiSuggestion(type, keywords = []) {
+                const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                
+                let relevantSuggestions = [];
+                const source = localAiDatabase[type];
+
+                if (keywords.length > 0) {
+                    keywords.forEach(keyword => {
+                        for (const key in source) {
+                            if (keyword.toLowerCase().includes(key)) {
+                                relevantSuggestions.push(...source[key]);
+                            }
+                        }
+                    });
+                }
+
+                if (relevantSuggestions.length > 0) {
+                    return getRandomItem(relevantSuggestions);
+                }
+
+                // Fallback to default if no relevant keywords are found
+                return getRandomItem(source.default || ['']);
+            }
+
             // --- PAYWALL LOGIC ---
             function checkUsage() {
                 let downloadCount = parseInt(localStorage.getItem('physioInvoiceDownloadCount') || '0');
                 if (downloadCount >= DOWNLOAD_LIMIT) {
                     document.getElementById('app-container').classList.add('hidden');
                     document.getElementById('paywall-container').classList.remove('hidden');
-                    return false; // App should be blocked
+                    return false;
                 }
-                return true; // App is usable
+                return true;
             }
 
             // --- LOCAL STORAGE FUNCTIONS ---
@@ -454,68 +507,30 @@
                 
                 saveClinicDetails();
             }, 250);
-
-            // --- AI CALLER FUNCTION ---
-            async function callGemini(prompt, button, isJson = false) {
-                if(button) {
-                    button.innerHTML = '<div class="spinner"></div>';
-                    button.disabled = true;
-                }
-                
-                try {
-                    const response = await fetch('/api/gemini', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt, isJson }) 
-                    });
-
-                    if (!response.ok) {
-                        let detailedMessage = `Server responded with status ${response.status}.`;
-                        try {
-                            const errorJson = await response.json();
-                            if (errorJson.message) {
-                                detailedMessage = errorJson.message;
-                            }
-                        } catch (e) {
-                            // Ignore if the body isn't JSON.
-                        }
-                        throw new Error(detailedMessage);
-                    }
-                    
-                    const result = await response.json();
-                    return result.response;
-
-                } catch (error) {
-                    console.error("API call failed:", error);
-                    alert(`AI feature failed: ${error.message}`);
-                    return null;
-                } finally {
-                    if(button) {
-                        const originalButtonText = button.id === 'generate-wellness-tip-btn' ? '✨ New Tip' : '✨ Suggest';
-                        button.innerHTML = originalButtonText;
-                        button.disabled = false;
-                    }
-                }
-            }
             
             let activeSuggestionInput = null;
-            const debouncedGetSuggestions = debounce(async (inputElement) => {
-                const keyword = inputElement.value;
+            const debouncedGetSuggestions = debounce((inputElement) => {
+                const keyword = inputElement.value.toLowerCase();
                 if (keyword.length < 3) {
                     hideSuggestions();
                     return;
                 }
                 activeSuggestionInput = inputElement;
-                const prompt = `You are an assistant for a physiotherapist. Based on the keyword "${keyword}", provide up to 3 relevant and professional invoice line item suggestions. Focus on common physiotherapy treatments, modalities, and session types. Return them as a JSON array of strings. For example, if the keyword is "knee", suggest items like "Knee Pain Assessment & Treatment", "Post-Surgical Knee Rehabilitation", or "Manual Therapy for Knee Joint".`;
-                const result = await callGemini(prompt, null, true);
-                if (result) {
-                    try {
-                        const suggestions = JSON.parse(result);
-                        showSuggestions(suggestions, inputElement);
-                    } catch (e) {
-                        console.error("Failed to parse JSON suggestions:", e);
-                        hideSuggestions();
+                
+                const allSuggestions = [];
+                for (const key in localAiDatabase.services) {
+                    if (key.includes(keyword) || keyword.includes(key)) {
+                        allSuggestions.push(...localAiDatabase.services[key]);
                     }
+                }
+                
+                // Get unique suggestions and limit to 3
+                const uniqueSuggestions = [...new Set(allSuggestions)].slice(0, 3);
+
+                if (uniqueSuggestions.length > 0) {
+                    showSuggestions(uniqueSuggestions, inputElement);
+                } else {
+                    hideSuggestions();
                 }
             }, 500);
 
@@ -554,25 +569,8 @@
                 }
             });
 
-            async function formatField(inputElement) {
-                const text = inputElement.value;
-                const formatType = inputElement.dataset.aiFormat;
-                if (!text || !formatType) return;
-
-                const prompt = `Correct spelling and apply proper capitalization for the following text, which is a ${formatType}. Return only the corrected text, with no extra commentary or quotes. Text: "${text}"`;
-                const correctedText = await callGemini(prompt, null);
-                if (correctedText) {
-                    inputElement.value = correctedText.replace(/"/g, '');
-                    updateInvoice();
-                }
-            }
-
             // --- INITIALIZATION AND EVENT LISTENERS ---
             if (checkUsage()) {
-                document.querySelectorAll('input[data-ai-format], textarea[data-ai-format]').forEach(el => {
-                    el.addEventListener('blur', () => formatField(el));
-                });
-                
                 document.querySelector('.lg\\:col-span-2').addEventListener('input', updateInvoice);
 
                 document.getElementById('logoUpload').addEventListener('change', (e) => {
@@ -616,32 +614,20 @@
                     }
                 });
                 
-                document.getElementById('generate-marketing-btn').addEventListener('click', async (e) => {
-                    const services = Array.from(document.querySelectorAll('.item-description')).map(input => input.value).filter(Boolean).join(', ');
-                    let prompt;
-                    if (services) {
-                        prompt = `Based on the physiotherapy services provided (${services}), write a short, encouraging marketing message for the invoice. Keep it under 20 words. Be professional. Return only the message, no quotes.`;
-                    } else {
-                        prompt = `Write a short, encouraging marketing message for a physiotherapist's invoice. Keep it under 20 words. Be professional. Return only the message, no quotes.`;
-                    }
-                    const generatedText = await callGemini(prompt, e.target);
+                document.getElementById('generate-marketing-btn').addEventListener('click', (e) => {
+                    const services = Array.from(document.querySelectorAll('.item-description')).map(input => input.value).filter(Boolean);
+                    const generatedText = getLocalAiSuggestion('marketing', services);
                     if (generatedText) {
-                        document.getElementById('marketingNotes').value = generatedText.replace(/"/g, '');
+                        document.getElementById('marketingNotes').value = generatedText;
                         updateInvoice();
                     }
                 });
 
-                document.getElementById('generate-wellness-tip-btn').addEventListener('click', async (e) => {
-                    const services = Array.from(document.querySelectorAll('.item-description')).map(input => input.value).filter(Boolean).join(', ');
-                    let prompt;
-                    if (services) {
-                        prompt = `Generate a single, simple, actionable wellness tip for a physiotherapy patient who received treatment for the following: ${services}. Maximum 15 words. Do not use quotes or introductory phrases.`;
-                    } else {
-                        prompt = `Generate a single, simple, actionable wellness tip for a physiotherapy patient. Maximum 15 words. Do not use quotes or introductory phrases.`;
-                    }
-                    const generatedText = await callGemini(prompt, e.target);
+                document.getElementById('generate-wellness-tip-btn').addEventListener('click', (e) => {
+                    const services = Array.from(document.querySelectorAll('.item-description')).map(input => input.value).filter(Boolean);
+                    const generatedText = getLocalAiSuggestion('wellness', services);
                     if (generatedText) {
-                        document.getElementById('wellness-tip-text').textContent = generatedText.replace(/"/g, '');
+                        document.getElementById('wellness-tip-text').textContent = generatedText;
                         updateInvoice();
                     }
                 });
@@ -683,7 +669,7 @@
                         
                         pdf.save(`${invoiceNumber}.pdf`);
                         
-                        checkUsage(); // Check usage again after download
+                        checkUsage();
                     });
                 });
 
@@ -697,9 +683,7 @@
                     document.getElementById('invoiceDate').valueAsDate = new Date();
 
                     addNewItemRow();
-                    if (!document.getElementById('wellness-tip-text').textContent || document.getElementById('wellness-tip-text').textContent === 'Your wellness tip will appear here.') {
-                        document.getElementById('generate-wellness-tip-btn').click();
-                    }
+                    document.getElementById('generate-wellness-tip-btn').click();
                     
                     updateInvoice();
                 }
