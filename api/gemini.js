@@ -13,7 +13,8 @@ export default async function handler(req, res) {
 
   try {
     const { prompt, isJson } = req.body;
-    const googleApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    // === UPDATED MODEL NAME HERE ===
+    const googleApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
     
     const payload = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -46,7 +47,9 @@ export default async function handler(req, res) {
       const textResponse = result.candidates[0].content.parts[0].text.trim();
       res.status(200).json({ response: textResponse });
     } else {
-      throw new Error("Could not extract text from Gemini response.");
+      // If the response structure is unexpected, send a clear error.
+      console.error("Unexpected response structure from Google API:", result);
+      throw new Error("Could not extract text from the Gemini response. The response structure may have changed.");
     }
 
   } catch (error) {
