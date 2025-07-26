@@ -307,7 +307,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // --- LOCAL STORAGE FUNCTIONS ---
+            // --- LOCAL STORAGE FUNCTIONS (UPI ID ADDED) ---
             function saveClinicDetails() {
                 const details = {
                     clinicName: document.getElementById('clinicName').value,
@@ -316,7 +316,7 @@
                     clinicContact: document.getElementById('clinicContact').value,
                     clinicEmail: document.getElementById('clinicEmail').value,
                     clinicReg: document.getElementById('clinicReg').value,
-                    upiId: document.getElementById('upiId').value,
+                    upiId: document.getElementById('upiId').value, // SAVING UPI ID
                     taxRate: document.getElementById('taxRate').value,
                     accentColor: document.getElementById('accentColor').value,
                     logoSrc: document.getElementById('preview-logo-img').src,
@@ -334,7 +334,7 @@
                     document.getElementById('clinicContact').value = details.clinicContact || '';
                     document.getElementById('clinicEmail').value = details.clinicEmail || '';
                     document.getElementById('clinicReg').value = details.clinicReg || '';
-                    document.getElementById('upiId').value = details.upiId || '';
+                    document.getElementById('upiId').value = details.upiId || ''; // LOADING UPI ID
                     document.getElementById('taxRate').value = details.taxRate || '0';
                     document.getElementById('accentColor').value = details.accentColor || '#10B981';
                     
@@ -424,7 +424,7 @@
                 saveClinicDetails();
             }, 250);
 
-            // --- AI CALLER FUNCTION (IMPROVED ERROR HANDLING) ---
+            // --- AI CALLER FUNCTION ---
             async function callGemini(prompt, button, isJson = false) {
                 if(button) {
                     button.innerHTML = '<div class="spinner"></div>';
@@ -475,7 +475,7 @@
                     return;
                 }
                 activeSuggestionInput = inputElement;
-                const prompt = `Based on the physiotherapy service keyword "${keyword}", provide up to 3 short, professional invoice line item suggestions. Return them as a JSON array of strings. For example: ["Manual Therapy for Back Pain", "Postural Correction Session", "Spinal Decompression Therapy"].`;
+                const prompt = `You are an assistant for a physiotherapist. Based on the keyword "${keyword}", provide up to 3 relevant and professional invoice line item suggestions. Focus on common physiotherapy treatments, modalities, and session types. Return them as a JSON array of strings. For example, if the keyword is "knee", suggest items like "Knee Pain Assessment & Treatment", "Post-Surgical Knee Rehabilitation", or "Manual Therapy for Knee Joint".`;
                 const result = await callGemini(prompt, null, true);
                 if (result) {
                     try {
@@ -583,8 +583,15 @@
                 }
             });
             
+            // --- UPDATED MARKETING & WELLNESS TIP LISTENERS ---
             document.getElementById('generate-marketing-btn').addEventListener('click', async (e) => {
-                const prompt = `Write a short, encouraging marketing message for a physiotherapist's invoice. Keep it under 20 words. Be professional. Return only the message, no quotes.`;
+                const services = Array.from(document.querySelectorAll('.item-description')).map(input => input.value).filter(Boolean).join(', ');
+                let prompt;
+                if (services) {
+                    prompt = `Based on the physiotherapy services provided (${services}), write a short, encouraging marketing message for the invoice. Keep it under 20 words. Be professional. Return only the message, no quotes.`;
+                } else {
+                    prompt = `Write a short, encouraging marketing message for a physiotherapist's invoice. Keep it under 20 words. Be professional. Return only the message, no quotes.`;
+                }
                 const generatedText = await callGemini(prompt, e.target);
                 if (generatedText) {
                     document.getElementById('marketingNotes').value = generatedText.replace(/"/g, '');
@@ -593,7 +600,13 @@
             });
 
             document.getElementById('generate-wellness-tip-btn').addEventListener('click', async (e) => {
-                const prompt = `Generate a single, simple, actionable wellness tip for a physiotherapy patient. Maximum 15 words. Do not use quotes or introductory phrases.`;
+                const services = Array.from(document.querySelectorAll('.item-description')).map(input => input.value).filter(Boolean).join(', ');
+                let prompt;
+                if (services) {
+                    prompt = `Generate a single, simple, actionable wellness tip for a physiotherapy patient who received treatment for the following: ${services}. Maximum 15 words. Do not use quotes or introductory phrases.`;
+                } else {
+                    prompt = `Generate a single, simple, actionable wellness tip for a physiotherapy patient. Maximum 15 words. Do not use quotes or introductory phrases.`;
+                }
                 const generatedText = await callGemini(prompt, e.target);
                 if (generatedText) {
                     document.getElementById('wellness-tip-text').textContent = generatedText.replace(/"/g, '');
