@@ -1,0 +1,9 @@
+{
+  "name": "physio-invoice-pro",
+  "version": "1.0.0",
+  "description": "Serverless API for Physio-Invoice Pro to securely call the Gemini API.",
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  }
+}

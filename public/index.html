@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physio-Invoice Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .form-input {
+            transition: all 0.2s ease-in-out;
+        }
+        .form-input:focus {
+            box-shadow: 0 0 0 2px var(--accent-color, #10B981);
+            border-color: var(--accent-color, #10B981);
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        #invoice-preview-wrapper {
+            background: #f0f2f5;
+            padding: 1rem;
+            border-radius: 1rem;
+        }
+        @media (min-width: 768px) {
+            #invoice-preview-wrapper {
+                padding: 2rem;
+            }
+        }
+        #invoice-preview {
+            background: white;
+            width: 100%;
+            aspect-ratio: 210 / 297;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 816px;
+            margin: auto;
+            font-size: 10.5pt;
+        }
+        .gemini-btn {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            background-color: #D1FAE5;
+            color: #065F46;
+            font-weight: 500;
+            font-size: 0.875rem;
+            line-height: 1;
+        }
+        .gemini-btn:hover {
+            background-color: #A7F3D0;
+        }
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #065F46;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #preview-logo-img {
+            max-width: 140px;
+            max-height: 70px;
+            object-fit: contain;
+        }
+        #ai-suggestions {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            list-style: none;
+            padding: 0.5rem;
+            margin: 0;
+            z-index: 100;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        #ai-suggestions li {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            border-radius: 0.25rem;
+        }
+        #ai-suggestions li:hover {
+            background-color: #f3f4f6;
+        }
+        .breakable {
+            word-break: break-word;
+        }
+        .quantity-bg {
+            background-color: #f3f4f6;
+            border-radius: 0.25rem;
+        }
+        .upi-icon {
+            height: 24px;
+            width: auto;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-6 lg:p-8">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">Physio-Invoice Pro ✨</h1>
+            <p class="text-lg text-gray-600 mt-2">Create professional invoices with a built-in AI assistant.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg space-y-6">
+                <h2 class="text-2xl font-semibold mb-2 border-b pb-4">Invoice Details</h2>
+                
+                <fieldset class="border border-gray-200 rounded-lg p-4">
+                    <legend class="text-lg font-semibold px-2">Your Clinic Details</legend>
+                    <div class="space-y-4">
+                         <div>
+                            <label for="logoUpload" class="block text-sm font-medium text-gray-700 mb-1">Clinic Logo</label>
+                            <input type="file" id="logoUpload" accept="image/*" class="form-input w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                        </div>
+                        <input type="text" id="clinicName" data-ai-format="name" class="form-input w-full rounded-md border-gray-300" placeholder="Clinic Name">
+                        <input type="text" id="therapistName" data-ai-format="name" class="form-input w-full rounded-md border-gray-300" placeholder="Therapist Name & Qualifications">
+                        <textarea id="clinicAddress" data-ai-format="address" rows="2" class="form-input w-full rounded-md border-gray-300" placeholder="Clinic Address"></textarea>
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="text" id="clinicContact" class="form-input w-full rounded-md border-gray-300" placeholder="Contact No.">
+                            <input type="email" id="clinicEmail" class="form-input w-full rounded-md border-gray-300" placeholder="Email Address">
+                        </div>
+                         <input type="text" id="clinicReg" class="form-input w-full rounded-md border-gray-300" placeholder="Registration/License No.">
+                    </div>
+                </fieldset>
+
+                <fieldset class="border border-gray-200 rounded-lg p-4">
+                    <legend class="text-lg font-semibold px-2">Patient Details</legend>
+                    <div class="space-y-4">
+                        <input type="text" id="toName" data-ai-format="name" class="form-input w-full rounded-md border-gray-300" placeholder="Patient Name">
+                        <textarea id="toAddress" data-ai-format="address" rows="2" class="form-input w-full rounded-md border-gray-300" placeholder="Patient Address"></textarea>
+                    </div>
+                </fieldset>
+                
+                <fieldset class="border border-gray-200 rounded-lg p-4">
+                    <legend class="text-lg font-semibold px-2">Invoice Info</legend>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="invoiceNumber" class="block text-sm font-medium text-gray-700 mb-1">Invoice No.</label>
+                            <input type="text" id="invoiceNumber" class="form-input w-full rounded-md border-gray-300 bg-gray-100" readonly>
+                        </div>
+                        <div>
+                             <label for="invoiceDate" class="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
+                            <input type="date" id="invoiceDate" class="form-input w-full rounded-md border-gray-300">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Sessions / Services</h3>
+                    <div id="items-container" class="space-y-3"></div>
+                    <button id="add-item-btn" class="mt-3 bg-emerald-500 text-white rounded-md py-2 px-4 text-sm hover:bg-emerald-600 btn flex items-center gap-2">
+                        Add Session
+                    </button>
+                </div>
+
+                <fieldset class="border border-gray-200 rounded-lg p-4">
+                     <legend class="text-lg font-semibold px-2">Payment & Tax</legend>
+                     <div class="space-y-4">
+                         <input type="text" id="upiId" class="form-input w-full rounded-md border-gray-300" placeholder="Your UPI ID (e.g., name@upi)">
+                         <input type="number" id="taxRate" class="form-input w-full rounded-md border-gray-300" placeholder="GST Rate (%)" value="0">
+                    </div>
+                </fieldset>
+                
+                <fieldset class="border border-gray-200 rounded-lg p-4">
+                    <legend class="text-lg font-semibold px-2 flex justify-between items-center w-full">
+                        <span>Marketing & Notes</span>
+                        <button id="generate-marketing-btn" class="gemini-btn" title="Suggest marketing message">✨ Suggest</button>
+                    </legend>
+                    <textarea id="marketingNotes" data-ai-format="sentence" rows="3" class="form-input w-full rounded-md border-gray-300" placeholder="e.g., Book your next session within 7 days for 10% off!"></textarea>
+                </fieldset>
+
+                 <fieldset class="border border-gray-200 rounded-lg p-4">
+                    <legend class="text-lg font-semibold px-2 flex justify-between items-center w-full">
+                        <span>Wellness Tip</span>
+                        <button id="generate-wellness-tip-btn" class="gemini-btn" title="Generate a wellness tip">✨ New Tip</button>
+                    </legend>
+                    <p id="wellness-tip-text" class="text-sm text-gray-600 p-2 bg-gray-50 rounded-md">Your wellness tip will appear here.</p>
+                </fieldset>
+
+                 <fieldset class="border border-gray-200 rounded-lg p-4">
+                    <legend class="text-lg font-semibold px-2">Customization</legend>
+                    <label for="accentColor" class="block text-sm font-medium text-gray-700 mb-1">Accent Color</label>
+                    <input type="color" id="accentColor" value="#10B981" class="w-full h-10 rounded-md border-gray-300 p-1">
+                 </fieldset>
+            </div>
+
+            <div class="lg:col-span-3">
+                <div id="invoice-preview-wrapper" class="sticky top-8">
+                    <div id="invoice-preview" class="p-8 flex flex-col">
+                        <header class="flex justify-between items-start pb-4 mb-4 border-b-2" style="border-color: var(--accent-color, #10B981);">
+                            <div class="flex items-center gap-4">
+                                <div id="preview-logo-placeholder">
+                                    <img id="preview-logo-img" src="" alt="Clinic Logo" class="hidden"/>
+                                </div>
+                                <div class="breakable">
+                                    <h2 class="text-xl font-bold text-gray-900" id="preview-clinic-name">Wellness Physiotherapy</h2>
+                                    <p class="text-base font-medium text-gray-700" id="preview-therapist-name">Dr. Jane Doe, MPT</p>
+                                    <p class="text-xs text-gray-500 whitespace-pre-line mt-1" id="preview-clinic-address">123 Health St, Mumbai</p>
+                                    <p class="text-xs text-gray-500" id="preview-clinic-contact">Contact | Email</p>
+                                </div>
+                            </div>
+                            <div class="text-right flex-shrink-0 ml-4">
+                                <h1 class="text-2xl font-bold uppercase" id="preview-invoice-title" style="color: var(--accent-color, #10B981);">INVOICE</h1>
+                                <p class="text-sm text-gray-500 mt-1"><span class="font-semibold">#</span> <span id="preview-invoice-number">INV-001</span></p>
+                                <p class="text-sm text-gray-500 mt-1" id="preview-clinic-reg">Reg. No: 12345</p>
+                            </div>
+                        </header>
+
+                        <section class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="breakable">
+                                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Bill To</h3>
+                                <p id="preview-to-name" class="font-semibold text-gray-800">Patient Name</p>
+                                <p id="preview-to-address" class="text-sm text-gray-600 whitespace-pre-line">Patient Address</p>
+                            </div>
+                            <div class="text-right">
+                                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Details</h3>
+                                <p class="text-sm text-gray-700"><span class="font-medium">Invoice Date:</span> <span id="preview-invoice-date"></span></p>
+                            </div>
+                        </section>
+
+                        <div class="flex-grow">
+                            <table class="w-full" style="table-layout: fixed;">
+                                <thead class="border-b-2 border-gray-200">
+                                    <tr class="text-left text-xs text-gray-500 uppercase tracking-wider bg-gray-100">
+                                        <th class="p-2 font-semibold w-[20%]">Date</th>
+                                        <th class="p-2 font-semibold w-[45%]">Service</th>
+                                        <th class="p-2 font-semibold w-[10%] text-center">Qty</th>
+                                        <th class="p-2 font-semibold w-[15%] text-right">Fee</th>
+                                        <th class="p-2 font-semibold w-[15%] text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preview-items-table" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+
+                        <footer class="mt-auto pt-4 border-t-2">
+                            <div class="flex justify-between items-start gap-4">
+                                <div class="w-3/5 breakable">
+                                    <div class="p-3 rounded-lg" style="background-color: #F0FDF4;">
+                                        <h4 class="font-bold text-emerald-800 mb-1 text-sm">Your Path to Wellness</h4>
+                                        <p id="preview-marketing-notes" class="text-xs text-emerald-700">Book your next session within 7 days for 10% off!</p>
+                                    </div>
+                                     <div class="mt-2">
+                                        <h4 class="font-semibold text-gray-500 text-xs uppercase tracking-wider">Wellness Tip</h4>
+                                        <p id="preview-wellness-tip" class="text-xs text-gray-600 italic">Remember to stretch for 5 minutes every morning.</p>
+                                    </div>
+                                </div>
+                                <div class="w-2/5 text-right">
+                                     <div class="space-y-2 text-sm mb-3">
+                                        <div class="flex justify-between">
+                                            <span>Subtotal:</span>
+                                            <span id="preview-subtotal">₹0.00</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span id="preview-tax-label">GST (0%):</span>
+                                            <span id="preview-tax">₹0.00</span>
+                                        </div>
+                                        <div class="flex justify-between font-bold text-base mt-2 pt-2 border-t bg-gray-100 rounded-md px-2 pb-2" style="border-color: var(--accent-color, #10B981);">
+                                            <span>Total Amount:</span>
+                                            <span id="preview-total">₹0.00</span>
+                                        </div>
+                                    </div>
+                                    <div class="border rounded-lg p-2 relative">
+                                        <div class="flex justify-center items-center gap-3 h-[112px]">
+                                            <div id="qr-wrapper" class="inline-block">
+                                                <canvas id="qr-code" class="rounded-lg"></canvas>
+                                            </div>
+                                            <img class="upi-icon h-8" src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI">
+                                        </div>
+                                        <p class="absolute bottom-2 left-1/2 -translate-x-1/2 text-black font-semibold text-xs">Scan & Pay</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </footer>
+                    </div>
+
+                    <div class="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+                        <button id="download-pdf-btn" class="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 btn flex items-center justify-center gap-2">
+                            Download PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- LOCAL STORAGE FUNCTIONS ---
+            function saveClinicDetails() {
+                const details = {
+                    clinicName: document.getElementById('clinicName').value,
+                    therapistName: document.getElementById('therapistName').value,
+                    clinicAddress: document.getElementById('clinicAddress').value,
+                    clinicContact: document.getElementById('clinicContact').value,
+                    clinicEmail: document.getElementById('clinicEmail').value,
+                    clinicReg: document.getElementById('clinicReg').value,
+                    upiId: document.getElementById('upiId').value,
+                    taxRate: document.getElementById('taxRate').value,
+                    accentColor: document.getElementById('accentColor').value,
+                    logoSrc: document.getElementById('preview-logo-img').src,
+                };
+                localStorage.setItem('physioInvoiceDetails', JSON.stringify(details));
+            }
+
+            function loadClinicDetails() {
+                const savedDetails = localStorage.getItem('physioInvoiceDetails');
+                if (savedDetails) {
+                    const details = JSON.parse(savedDetails);
+                    document.getElementById('clinicName').value = details.clinicName || '';
+                    document.getElementById('therapistName').value = details.therapistName || '';
+                    document.getElementById('clinicAddress').value = details.clinicAddress || '';
+                    document.getElementById('clinicContact').value = details.clinicContact || '';
+                    document.getElementById('clinicEmail').value = details.clinicEmail || '';
+                    document.getElementById('clinicReg').value = details.clinicReg || '';
+                    document.getElementById('upiId').value = details.upiId || '';
+                    document.getElementById('taxRate').value = details.taxRate || '0';
+                    document.getElementById('accentColor').value = details.accentColor || '#10B981';
+                    
+                    if (details.logoSrc && details.logoSrc.startsWith('data:image')) {
+                        const logoImg = document.getElementById('preview-logo-img');
+                        logoImg.src = details.logoSrc;
+                        logoImg.classList.remove('hidden');
+                    }
+                }
+            }
+
+            // --- DEBOUNCE UTILITY ---
+            const debounce = (func, delay) => {
+                let timeoutId;
+                return (...args) => {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => func.apply(this, args), delay);
+                };
+            };
+            
+            // --- MAIN UPDATE FUNCTION ---
+            const updateInvoice = debounce(() => {
+                const fields = {
+                    'clinicName': 'preview-clinic-name', 'therapistName': 'preview-therapist-name',
+                    'clinicAddress': 'preview-clinic-address', 'toName': 'preview-to-name',
+                    'toAddress': 'preview-to-address', 'invoiceNumber': 'preview-invoice-number',
+                    'invoiceDate': 'preview-invoice-date', 'marketingNotes': 'preview-marketing-notes', 
+                    'wellness-tip-text': 'preview-wellness-tip'
+                };
+                for (const [inputId, previewId] of Object.entries(fields)) {
+                    const inputEl = document.getElementById(inputId);
+                    const previewEl = document.getElementById(previewId);
+                    if (inputEl && previewEl) {
+                        previewEl.textContent = inputEl.value || inputEl.textContent || '';
+                    }
+                }
+                
+                const clinicContact = document.getElementById('clinicContact').value || 'Contact';
+                const clinicEmail = document.getElementById('clinicEmail').value || 'Email';
+                document.getElementById('preview-clinic-contact').textContent = `${clinicContact} | ${clinicEmail}`;
+                const clinicReg = document.getElementById('clinicReg').value;
+                document.getElementById('preview-clinic-reg').textContent = clinicReg ? `Reg. No: ${clinicReg}` : '';
+
+                document.documentElement.style.setProperty('--accent-color', document.getElementById('accentColor').value);
+
+                const itemsContainer = document.getElementById('items-container');
+                const previewItemsTable = document.getElementById('preview-items-table');
+                previewItemsTable.innerHTML = '';
+                let subtotal = 0;
+                itemsContainer.querySelectorAll('.item-row').forEach(row => {
+                    const date = row.querySelector('.item-date').value;
+                    const description = row.querySelector('.item-description').value;
+                    const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+                    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                    const total = quantity * price;
+                    subtotal += total;
+
+                    if (description) {
+                        const tr = document.createElement('tr');
+                        tr.className = 'text-sm';
+                        tr.innerHTML = `
+                            <td class="p-2 breakable">${date}</td>
+                            <td class="p-2 font-medium text-gray-800 breakable">${description}</td>
+                            <td class="p-2 text-center"><span class="quantity-bg px-2 py-1 rounded">${quantity}</span></td>
+                            <td class="p-2 text-right">₹${price.toFixed(2)}</td>
+                            <td class="p-2 text-right font-semibold">₹${total.toFixed(2)}</td>
+                        `;
+                        previewItemsTable.appendChild(tr);
+                    }
+                });
+
+                const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+                const tax = subtotal * (taxRate / 100);
+                const total = subtotal + tax;
+                document.getElementById('preview-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+                document.getElementById('preview-tax-label').textContent = `GST (${taxRate}%):`;
+                document.getElementById('preview-tax').textContent = `₹${tax.toFixed(2)}`;
+                document.getElementById('preview-total').textContent = `₹${total.toFixed(2)}`;
+
+                const upiId = document.getElementById('upiId').value;
+                const clinicName = document.getElementById('clinicName').value || 'Your Clinic';
+                const qrCanvas = document.getElementById('qr-code');
+                
+                const upiUrl = `upi://pay?pa=${upiId || 'default'}&pn=${encodeURIComponent(clinicName)}&am=${total.toFixed(2)}&cu=INR`;
+                new QRious({ element: qrCanvas, value: upiUrl, size: 112, padding: 4, level: 'H' });
+                
+                // Save details to local storage on every update
+                saveClinicDetails();
+            }, 250);
+
+            // --- AI CALLER FUNCTION ---
+            async function callGemini(prompt, button, isJson = false) {
+                if(button) {
+                    button.innerHTML = '<div class="spinner"></div>';
+                    button.disabled = true;
+                }
+                
+                try {
+                    const response = await fetch('/api/gemini', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt, isJson }) 
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    return result.response;
+
+                } catch (error) {
+                    console.error("API call failed:", error);
+                    alert("AI feature failed. Please check the console for details.");
+                    return null;
+                } finally {
+                    if(button) {
+                        const originalButtonText = button.id === 'generate-wellness-tip-btn' ? '✨ New Tip' : '✨ Suggest';
+                        button.innerHTML = originalButtonText;
+                        button.disabled = false;
+                    }
+                }
+            }
+            
+            let activeSuggestionInput = null;
+            const debouncedGetSuggestions = debounce(async (inputElement) => {
+                const keyword = inputElement.value;
+                if (keyword.length < 3) {
+                    hideSuggestions();
+                    return;
+                }
+                activeSuggestionInput = inputElement;
+                const prompt = `Based on the physiotherapy service keyword "${keyword}", provide up to 3 short, professional invoice line item suggestions. Return them as a JSON array of strings. For example: ["Manual Therapy for Back Pain", "Postural Correction Session", "Spinal Decompression Therapy"].`;
+                const result = await callGemini(prompt, null, true);
+                if (result) {
+                    try {
+                        const suggestions = JSON.parse(result);
+                        showSuggestions(suggestions, inputElement);
+                    } catch (e) {
+                        console.error("Failed to parse JSON suggestions:", e);
+                        hideSuggestions();
+                    }
+                }
+            }, 500);
+
+            function showSuggestions(suggestions, inputElement) {
+                hideSuggestions();
+                const suggestionsContainer = document.createElement('ul');
+                suggestionsContainer.id = 'ai-suggestions';
+                suggestions.forEach(text => {
+                    const li = document.createElement('li');
+                    li.textContent = text;
+                    li.addEventListener('click', () => {
+                        if (activeSuggestionInput) {
+                            activeSuggestionInput.value = text;
+                            updateInvoice();
+                        }
+                        hideSuggestions();
+                    });
+                    suggestionsContainer.appendChild(li);
+                });
+
+                document.body.appendChild(suggestionsContainer);
+                const rect = inputElement.getBoundingClientRect();
+                suggestionsContainer.style.left = `${rect.left}px`;
+                suggestionsContainer.style.top = `${rect.bottom + window.scrollY}px`;
+                suggestionsContainer.style.width = `${rect.width}px`;
+            }
+
+            function hideSuggestions() {
+                const container = document.getElementById('ai-suggestions');
+                if (container) container.remove();
+            }
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#ai-suggestions') && !e.target.classList.contains('item-description')) {
+                    hideSuggestions();
+                }
+            });
+
+            async function formatField(inputElement) {
+                const text = inputElement.value;
+                const formatType = inputElement.dataset.aiFormat;
+                if (!text || !formatType) return;
+
+                const prompt = `Correct spelling and apply proper capitalization for the following text, which is a ${formatType}. Return only the corrected text, with no extra commentary or quotes. Text: "${text}"`;
+                const correctedText = await callGemini(prompt, null);
+                if (correctedText) {
+                    inputElement.value = correctedText.replace(/"/g, '');
+                    updateInvoice();
+                }
+            }
+
+            document.querySelectorAll('input[data-ai-format], textarea[data-ai-format]').forEach(el => {
+                el.addEventListener('blur', () => formatField(el));
+            });
+            
+            document.querySelector('.lg\\:col-span-2').addEventListener('input', updateInvoice);
+
+            document.getElementById('logoUpload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        document.getElementById('preview-logo-img').src = event.target.result;
+                        document.getElementById('preview-logo-img').classList.remove('hidden');
+                        updateInvoice(); // Save logo to local storage
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            function addNewItemRow() {
+                const itemsContainer = document.getElementById('items-container');
+                const newItemRow = document.createElement('div');
+                newItemRow.className = 'item-row grid grid-cols-12 gap-2 items-center';
+                newItemRow.innerHTML = `
+                    <input type="date" class="item-date col-span-2 form-input rounded-md border-gray-300 text-xs">
+                    <div class="col-span-6 relative">
+                        <input type="text" class="item-description w-full form-input rounded-md border-gray-300" placeholder="e.g., Back Pain Session">
+                    </div>
+                    <input type="number" class="item-quantity col-span-1 form-input rounded-md border-gray-300" placeholder="Qty" value="1">
+                    <input type="number" class="item-price col-span-2 form-input rounded-md border-gray-300" placeholder="Fee">
+                    <button class="remove-item-btn col-span-1 bg-red-500 text-white rounded-md p-2 text-xs hover:bg-red-600 flex justify-center items-center">X</button>
+                `;
+                itemsContainer.appendChild(newItemRow);
+                newItemRow.querySelector('.item-date').valueAsDate = new Date();
+                newItemRow.querySelectorAll('input').forEach(input => input.addEventListener('input', updateInvoice));
+                newItemRow.querySelector('.item-description').addEventListener('input', (e) => debouncedGetSuggestions(e.target));
+            }
+            
+            document.getElementById('add-item-btn').addEventListener('click', addNewItemRow);
+
+            document.getElementById('items-container').addEventListener('click', (e) => {
+                if (e.target.closest('.remove-item-btn')) {
+                    e.target.closest('.item-row').remove();
+                    updateInvoice();
+                }
+            });
+            
+            document.getElementById('generate-marketing-btn').addEventListener('click', async (e) => {
+                const prompt = `Write a short, encouraging marketing message for a physiotherapist's invoice. Keep it under 20 words. Be professional. Return only the message, no quotes.`;
+                const generatedText = await callGemini(prompt, e.target);
+                if (generatedText) {
+                    document.getElementById('marketingNotes').value = generatedText.replace(/"/g, '');
+                    updateInvoice();
+                }
+            });
+
+            document.getElementById('generate-wellness-tip-btn').addEventListener('click', async (e) => {
+                const prompt = `Generate a single, simple, actionable wellness tip for a physiotherapy patient. Maximum 15 words. Do not use quotes or introductory phrases.`;
+                const generatedText = await callGemini(prompt, e.target);
+                if (generatedText) {
+                    document.getElementById('wellness-tip-text').textContent = generatedText.replace(/"/g, '');
+                    updateInvoice();
+                }
+            });
+
+            document.getElementById('download-pdf-btn').addEventListener('click', () => {
+                const { jsPDF } = window.jspdf;
+                const invoice = document.getElementById('invoice-preview');
+                const invoiceNumber = document.getElementById('invoiceNumber').value || 'invoice';
+                const options = { scale: 3, useCORS: true, backgroundColor: null };
+
+                const originalParent = invoice.parentElement;
+                const originalStyles = {
+                    width: invoice.style.width,
+                    height: invoice.style.height,
+                    maxWidth: invoice.style.maxWidth
+                };
+
+                document.body.appendChild(invoice);
+                invoice.style.width = '816px';
+                invoice.style.height = '1154px';
+                invoice.style.maxWidth = 'none';
+
+                html2canvas(invoice, options).then(canvas => {
+                    originalParent.appendChild(invoice);
+                    invoice.style.width = originalStyles.width;
+                    invoice.style.height = originalStyles.height;
+                    invoice.style.maxWidth = originalStyles.maxWidth;
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.9); 
+                    const pdf = new jsPDF('p', 'mm', 'a4'); 
+                    const pdfWidth = 210;
+                    const pdfHeight = 297;
+                    
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                    
+                    pdf.save(`${invoiceNumber}.pdf`);
+                });
+            });
+
+            // --- INITIALIZATION ---
+            function initializeApp() {
+                loadClinicDetails(); // Load saved details first
+
+                const d = new Date();
+                const timestamp = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}-${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}${d.getSeconds().toString().padStart(2,'0')}`;
+                document.getElementById('invoiceNumber').value = `INV-${timestamp}`;
+
+                document.getElementById('invoiceDate').valueAsDate = new Date();
+
+                addNewItemRow();
+                if (!document.getElementById('wellness-tip-text').textContent || document.getElementById('wellness-tip-text').textContent === 'Your wellness tip will appear here.') {
+                    document.getElementById('generate-wellness-tip-btn').click();
+                }
+                
+                updateInvoice(); // Update preview with loaded/default data
+            }
+
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
