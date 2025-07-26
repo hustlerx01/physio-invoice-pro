@@ -327,31 +327,56 @@
         document.addEventListener('DOMContentLoaded', function () {
             const DOWNLOAD_LIMIT = 2;
 
-            // --- LOCAL "AI" DATABASE ---
+            // --- EXPANDED LOCAL "AI" DATABASE ---
             const localAiDatabase = {
                 services: {
-                    'pain': ['Pain Management Session', 'Chronic Pain Consultation', 'Acute Injury Pain Relief'],
-                    'back': ['Lower Back Pain Treatment', 'Spinal Decompression Therapy', 'Postural Correction Session'],
-                    'neck': ['Neck Pain & Stiffness Therapy', 'Cervical Traction Session', 'Whiplash Injury Rehab'],
-                    'shoulder': ['Frozen Shoulder Treatment', 'Rotator Cuff Injury Rehab', 'Shoulder Impingement Therapy'],
-                    'knee': ['Knee Pain Assessment & Treatment', 'Post-Surgical Knee Rehabilitation', 'ACL Injury Prevention Program'],
-                    'rehab': ['Post-Operative Rehabilitation', 'Sports Injury Rehabilitation', 'Neurological Rehabilitation'],
-                    'sports': ['Sports Injury Assessment', 'Performance Enhancement Training', 'Return-to-Sport Program'],
-                    'manual': ['Manual Therapy Session', 'Joint Mobilization', 'Soft Tissue Release'],
-                    'therapy': ['Manual Therapy Session', 'Electrotherapy Modality', 'Exercise Therapy Program'],
+                    'pain': ['Pain Management Session', 'Chronic Pain Consultation', 'Acute Injury Pain Relief', 'Myofascial Release'],
+                    'back': ['Lower Back Pain Treatment', 'Spinal Decompression Therapy', 'Postural Correction Session', 'Sciatica Management'],
+                    'neck': ['Neck Pain & Stiffness Therapy', 'Cervical Traction Session', 'Whiplash Injury Rehab', 'Text Neck Correction'],
+                    'shoulder': ['Frozen Shoulder Treatment', 'Rotator Cuff Injury Rehab', 'Shoulder Impingement Therapy', 'Shoulder Mobility Program'],
+                    'knee': ['Knee Pain Assessment & Treatment', 'Post-Surgical Knee Rehabilitation', 'ACL Injury Prevention Program', 'Osteoarthritis Knee Care'],
+                    'hip': ['Hip Pain Management', 'Hip Replacement Rehab', 'Sciatica Treatment Program', 'Hip Mobility Exercises'],
+                    'ankle': ['Ankle Sprain Rehabilitation', 'Plantar Fasciitis Relief', 'Achilles Tendinopathy Treatment', 'Foot Drop Management'],
+                    'foot': ['Plantar Fasciitis Relief', 'Flat Foot Corrective Exercises', 'Ankle & Foot Strengthening'],
+                    'wrist': ['Carpal Tunnel Syndrome Therapy', 'Wrist Fracture Rehab', 'Hand Dexterity Exercises', 'De Quervain\'s Tenosynovitis Care'],
+                    'hand': ['Hand Dexterity Exercises', 'Post-Fracture Hand Rehab', 'Trigger Finger Management'],
+                    'elbow': ['Tennis Elbow Treatment', 'Golfer\'s Elbow Therapy', 'Elbow Stiffness Mobilization'],
+                    'rehab': ['Post-Operative Rehabilitation', 'Sports Injury Rehabilitation', 'Neurological Rehabilitation', 'Cardiac Rehabilitation'],
+                    'sports': ['Sports Injury Assessment', 'Performance Enhancement Training', 'Return-to-Sport Program', 'Athlete Screening'],
+                    'manual': ['Manual Therapy Session', 'Joint Mobilization', 'Soft Tissue Release', 'Mulligan Technique'],
+                    'therapy': ['Manual Therapy Session', 'Electrotherapy Modality (TENS/IFT)', 'Ultrasound Therapy', 'Exercise Therapy Program'],
+                    'exercise': ['Therapeutic Exercise Prescription', 'Customized Home Exercise Plan', 'Strength & Conditioning Session'],
+                    'neuro': ['Stroke Rehabilitation Program', 'Neurological Physiotherapy', 'Balance & Coordination Training', 'Parkinson\'s Disease Management'],
+                    'geriatric': ['Geriatric Mobility Program', 'Fall Prevention Training', 'Senior Citizen Fitness Session', 'Arthritis Management'],
+                    'arthritis': ['Arthritis Pain Management Program', 'Joint Mobility Improvement Session', 'Rheumatoid Arthritis Care'],
+                    'women': ['Post-Natal Core Strengthening', 'Pelvic Floor Rehabilitation', 'Women\'s Health Consultation'],
+                    'taping': ['Kinesiology Taping Application', 'Sports Taping for Injury Support', 'Rigid Taping Technique'],
+                    'dry needling': ['Trigger Point Dry Needling Session'],
+                    'consult': ['Initial Physiotherapy Consultation', 'Follow-up Assessment', 'Tele-Consultation Session', 'Ergonomic Assessment'],
                 },
                 marketing: {
-                    'default': ['Consistent therapy is key to your recovery. Book your next session soon!', 'Your health is an investment. We look forward to seeing you again.', 'Thank you for trusting us with your recovery journey.'],
+                    'default': ['Consistent therapy is key to your recovery. Book your next session soon!', 'Your health is an investment. We look forward to seeing you again.', 'Thank you for trusting us with your recovery journey.', 'Your progress is our priority. See you at your next appointment!', 'Keep up the great work on your path to recovery!'],
                     'pain': ['Don\'t let pain hold you back. Schedule your follow-up for continued relief.', 'Stay on top of your recovery. Your next session is just a call away.'],
                     'rehab': ['Your dedication is paying off! Let\'s keep the momentum going in your next session.', 'Rehabilitation is a journey. Book your next appointment to stay on track.'],
-                    'sports': ['Get back in the game stronger than ever. Book your follow-up session today!', 'Optimize your performance and prevent future injuries with regular sessions.']
+                    'sports': ['Get back in the game stronger than ever. Book your follow-up session today!', 'Optimize your performance and prevent future injuries with regular sessions.'],
+                    'neuro': ['Celebrating every milestone in your recovery. We are here to support you.'],
+                    'geriatric': ['Maintaining mobility is key to independence. We\'re here to help you stay active.'],
+                    'hip': ['Every step forward is a victory. Let\'s continue your progress together.'],
+                    'ankle': ['Every step forward is a victory. Let\'s continue your progress together.']
                 },
                 wellness: {
-                    'default': ['Stay hydrated throughout the day to aid muscle recovery.', 'Remember to take short breaks and stretch if you sit for long periods.', 'Listen to your body. Rest is just as important as exercise.'],
+                    'default': ['Stay hydrated throughout the day to aid muscle recovery.', 'Remember to take short breaks and stretch if you sit for long periods.', 'Listen to your body. Rest is just as important as exercise.', 'Proper posture is crucial, even when relaxing. Sit tall!', 'A balanced diet rich in calcium and vitamin D supports bone health.'],
                     'back': ['Engage your core when lifting to protect your lower back.', 'Use a lumbar roll for support when sitting for extended periods.'],
                     'neck': ['Ensure your computer screen is at eye level to avoid neck strain.', 'Gently perform neck stretches daily to maintain flexibility.'],
                     'shoulder': ['Avoid sleeping on your painful shoulder. Use pillows for support.', 'Strengthen your rotator cuff with light resistance band exercises.'],
-                    'knee': ['Strengthen your quadriceps and hamstrings to support your knee joint.', 'Low-impact exercises like swimming are great for knee health.']
+                    'knee': ['Strengthen your quadriceps and hamstrings to support your knee joint.', 'Low-impact exercises like swimming are great for knee health.'],
+                    'hip': ['Strengthen your glutes to provide better support for your hip joints.', 'Avoid crossing your legs for long periods to reduce hip strain.'],
+                    'ankle': ['Wear supportive footwear to prevent re-injury and provide stability.', 'Practice balancing on one leg to improve ankle stability.'],
+                    'foot': ['Wear supportive footwear to prevent re-injury and provide stability.', 'Roll a tennis ball under your foot to relieve arch tension.'],
+                    'wrist': ['Take regular breaks from typing to stretch your wrists and fingers.', 'Squeeze a stress ball to improve grip strength.'],
+                    'hand': ['Take regular breaks from typing to stretch your wrists and fingers.', 'Squeeze a stress ball to improve grip strength.'],
+                    'elbow': ['Avoid overuse of your wrist and forearm muscles to prevent flare-ups.'],
+                    'arthritis': ['Gentle range of motion exercises can help reduce joint stiffness.']
                 }
             };
 
@@ -376,7 +401,6 @@
                     return getRandomItem(relevantSuggestions);
                 }
 
-                // Fallback to default if no relevant keywords are found
                 return getRandomItem(source.default || ['']);
             }
 
@@ -524,7 +548,6 @@
                     }
                 }
                 
-                // Get unique suggestions and limit to 3
                 const uniqueSuggestions = [...new Set(allSuggestions)].slice(0, 3);
 
                 if (uniqueSuggestions.length > 0) {
